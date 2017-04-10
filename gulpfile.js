@@ -6,10 +6,13 @@ var gulp         = require('gulp'),
     autoprefixer = require('autoprefixer'),
     concat       = require('gulp-concat'),
     fs           = require('fs'),
+    path         = require('path'),
     data         = require('gulp-data'),
     del          = require('del'),
     browsersync  = require('browser-sync'),
-    pug          = require('gulp-pug');
+    pug          = require('gulp-pug'),
+    plumber      = require('gulp-plumber');
+
 
 gulp.task('pug', function () {
     return gulp.src('bundle/pages/**/*.pug')
@@ -24,12 +27,22 @@ gulp.task('clean', function () {
 })
 gulp.task('sass-compile', function () {
     return gulp.src('bundle/files/common/sass/main.+(scss|sass)')
+        // .pipe(plumber())
         .pipe(sass())
+        .on("error", function (err) {
+            // gutil.log(err);
+            if(false) {
+                process.exit(1);
+            } else {
+                this.emit('end');
+            }
+        })
         .pipe(rename('common.css'))
         .pipe(sourcemaps.init())
         .pipe(postcss( [ autoprefixer()] ) )
         .pipe(sourcemaps.write('.'))
         .pipe(gulp.dest('bundle/pages/_merged/_temp'));
+
 });
 
 gulp.task('common-js', function () {
@@ -111,4 +124,17 @@ gulp.task('browsersync', function () {
         notify: false
     });
 })
-gulp.task('start', ['libs-concat', 'common-concat-js', 'common-concat-css', 'watch', 'browsersync'])
+
+gulp.task('path', function () {
+
+    var link= fs.readFileSync("bundle/pages/_merged/_temp/index-page-style.html", "utf8");
+        fs.readdir('bundle/pages', function (err, items) {
+            items.forEach(function (item) {
+                if (item != '_merged')
+                link += '<a href="bundle/pages/' + item + '/' + item + '.html">'+ item +'.html</a>';
+            })
+            fs.writeFile('index.html', link);
+        });
+})
+
+gulp.task('start', ['libs-concat', 'common-concat-js', 'common-concat-css', 'watch', 'path', 'browsersync'])
